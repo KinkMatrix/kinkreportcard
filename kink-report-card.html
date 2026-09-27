@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kink Report Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#FAF8F4; --bg-alt:#F3EFE8; --ink:#1B1814; --gray:#736B62; --line:#E3DCD1;
+  --accent:#5E2233; --white:#FFFFFF;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#17140F; --bg-alt:#1E1A14; --ink:#F2ECE2; --gray:#9C9285; --line:#312B22; --accent:#C98A9B; --white:#211D17; } }
+:root[data-theme="dark"]{ --bg:#17140F; --bg-alt:#1E1A14; --ink:#F2ECE2; --gray:#9C9285; --line:#312B22; --accent:#C98A9B; --white:#211D17; }
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px); scroll-behavior:smooth;}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;}
+.serif{font-family:'Newsreader',Georgia,'Times New Roman',serif;}
+.wrap{max-width:1180px; margin:0 auto; padding:0 28px;}
+.eyebrow{font-size:11px; letter-spacing:.14em; color:var(--gray); text-transform:uppercase;}
+
+/* HERO */
+.hero{padding:96px 0 72px; border-bottom:1px solid var(--line);}
+.hero h1{font-size:clamp(40px,6vw,72px); font-weight:500; line-height:1.05; margin:18px 0 22px; max-width:14ch;}
+.hero p.sub{font-size:18px; color:var(--gray); max-width:46ch; line-height:1.55; margin:0 0 36px;}
+.btn{display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:var(--bg); border:none; padding:15px 26px; font-size:14px; font-family:inherit; font-weight:500; cursor:pointer; letter-spacing:.01em; transition:opacity .2s ease;}
+.btn:hover{opacity:.85;}
+.btn.secondary{background:transparent; color:var(--ink); border:1px solid var(--line);}
+.hero .foot{margin-top:18px; font-size:13px; color:var(--gray);}
+
+/* APP LAYOUT */
+.app{padding:64px 0 120px;}
+.privacy{display:flex; gap:12px; align-items:flex-start; background:var(--bg-alt); border:1px solid var(--line); padding:16px 18px; margin-bottom:48px; font-size:13.5px; color:var(--gray); line-height:1.5;}
+.privacy strong{color:var(--ink); font-weight:500;}
+.grid{display:grid; grid-template-columns:1fr; gap:56px;}
+@media(min-width:960px){ .grid{grid-template-columns: 1fr 1fr; align-items:start;} .preview-col{position:sticky; top:28px;} }
+
+h2.section-title{font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--gray); margin:0 0 22px; padding-bottom:14px; border-bottom:1px solid var(--line);}
+.field{margin-bottom:22px;}
+.field label{display:block; font-size:13px; margin-bottom:7px; color:var(--ink);}
+.field label .opt{color:var(--gray); font-weight:400;}
+.field input, .field textarea{width:100%; border:none; border-bottom:1px solid var(--line); background:transparent; font-family:inherit; font-size:15px; color:var(--ink); padding:9px 2px; outline:none; transition:border-color .2s ease;}
+.field input::placeholder, .field textarea::placeholder{color:#B4AB9E;}
+.field input:focus, .field textarea:focus{border-color:var(--accent);}
+.field textarea{resize:vertical; min-height:64px;}
+.err{font-size:12.5px; color:var(--accent); margin-top:6px; display:none;}
+.err.show{display:block;}
+
+.kink-block{margin-top:52px;}
+.kink-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px;}
+.kink-card{border:1px solid var(--line); padding:20px; margin-bottom:14px; display:grid; grid-template-columns:34px 1fr auto; gap:16px; align-items:end; transition:opacity .25s ease, transform .25s ease;}
+.kink-card.removing{opacity:0; transform:translateX(8px);}
+.kink-card.entering{animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+.kink-num{font-family:'Newsreader',serif; font-size:22px; color:var(--gray); align-self:center;}
+.kink-fields{display:flex; flex-direction:column; gap:14px;}
+.kink-fields input, .kink-fields select{border:none; border-bottom:1px solid var(--line); background:transparent; font-family:inherit; font-size:15px; color:var(--ink); padding:6px 2px; outline:none;}
+.kink-fields select{cursor:pointer;}
+.rm-btn{background:none; border:none; color:var(--gray); font-size:12px; letter-spacing:.05em; cursor:pointer; align-self:center; padding:6px;}
+.rm-btn:hover{color:var(--accent);}
+.kink-err{grid-column:1/-1; font-size:12px; color:var(--accent); margin-top:-6px;}
+.add-btn{width:100%; border:1px dashed var(--line); background:transparent; color:var(--ink); font-family:inherit; font-size:14px; padding:16px; cursor:pointer; margin-top:6px; transition:border-color .2s ease, background .2s ease;}
+.add-btn:hover{border-color:var(--accent); background:var(--bg-alt);}
+
+.cta-row{margin-top:56px; display:flex; flex-wrap:wrap; gap:14px; align-items:center;}
+.gen-status{font-size:13px; color:var(--gray);}
+
+/* PREVIEW */
+.preview-shell{background:var(--white); border:1px solid var(--line); padding:52px 40px; min-height:400px;}
+.pv-eyebrow{font-size:10.5px; letter-spacing:.14em; color:var(--gray); text-transform:uppercase; margin-bottom:8px;}
+.pv-title{font-family:'Newsreader',serif; font-size:34px; line-height:1.05; margin:0 0 4px;}
+.pv-sub{font-size:12.5px; color:var(--gray); margin-bottom:30px;}
+.pv-rule{border:none; border-top:1px solid var(--line); margin:26px 0;}
+.pv-meta{display:grid; grid-template-columns:1fr 1fr; gap:16px 24px;}
+.pv-meta div{}
+.pv-meta .l{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); margin-bottom:3px;}
+.pv-meta .v{font-size:14.5px;}
+.pv-bio{grid-column:1/-1; font-size:14px; line-height:1.55; color:var(--ink);}
+.pv-kh{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--gray); margin:34px 0 18px;}
+.pv-kink{display:grid; grid-template-columns:30px 1fr auto; gap:12px; align-items:baseline; padding:13px 0; border-bottom:1px solid var(--line);}
+.pv-kink:last-child{border-bottom:none;}
+.pv-kink .n{font-family:'Newsreader',serif; color:var(--gray); font-size:14px;}
+.pv-kink .name{font-size:15.5px;}
+.pv-kink .role{font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent);}
+.pv-empty{font-size:13.5px; color:var(--gray); font-style:italic;}
+
+footer{padding:40px 0 60px; text-align:center; font-size:12px; color:var(--gray); border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Kink Report Card</p>
+    <h1 class="serif">Your preferences.<br>Beautifully documented.</h1>
+    <p class="sub">Create a private, minimalist kink report card from the preferences you choose to share.</p>
+    <button class="btn" onclick="document.getElementById('app').scrollIntoView()">Create Report Card</button>
+    <p class="foot">Your information stays under your control.</p>
+  </div>
+</section>
+
+<main id="app" class="app">
+  <div class="wrap">
+    <div class="privacy">
+      <span>🔒</span>
+      <span><strong>Only the information you choose to include will appear in your report.</strong> Nothing is sent to a server, stored, or inferred — the PDF is built entirely in your browser from exactly what you type below.</span>
+    </div>
+
+    <div class="grid">
+      <!-- FORM -->
+      <div>
+        <h2 class="section-title">Profile</h2>
+        <div class="field">
+          <label for="fetlifeId">FetLife ID</label>
+          <input id="fetlifeId" placeholder="Enter your FetLife ID" oninput="renderPreview()">
+          <div class="err" id="err-fetlife">FetLife ID is required to generate your report.</div>
+        </div>
+        <div class="field"><label>Display Name <span class="opt">— Optional</span></label><input id="displayName" oninput="renderPreview()"></div>
+        <div class="field"><label>Pronouns <span class="opt">— Optional</span></label><input id="pronouns" oninput="renderPreview()"></div>
+        <div class="field"><label>Location <span class="opt">— Optional</span></label><input id="location" oninput="renderPreview()"></div>
+        <div class="field"><label>Age <span class="opt">— Optional</span></label><input id="age" type="number" min="18" oninput="renderPreview()"></div>
+        <div class="field"><label>Short Bio <span class="opt">— Optional</span></label><textarea id="bio" oninput="renderPreview()"></textarea></div>
+        <div class="field"><label>Website / Social Link <span class="opt">— Optional</span></label><input id="website" oninput="renderPreview()"></div>
+        <div class="field"><label>Date of Report <span class="opt">— Optional</span></label><input id="reportDate" type="date" oninput="renderPreview()"></div>
+
+        <div class="kink-block">
+          <div class="kink-head">
+            <h2 class="section-title" style="margin:0; padding:0; border:none;">Kinks &amp; Preferences</h2>
+          </div>
+          <div id="kinkList"></div>
+          <button class="add-btn" onclick="addKink()">+ Add Kink</button>
+        </div>
+
+        <div class="cta-row">
+          <button class="btn" id="genBtn" onclick="generatePDF()">Generate Report Card</button>
+          <span class="gen-status" id="genStatus"></span>
+        </div>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="preview-col">
+        <h2 class="section-title">Report Preview</h2>
+        <div class="preview-shell" id="preview"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Generated locally in your browser. Nothing you enter here leaves your device.</footer>
+
+<script>
+let kinks = [];
+let kinkSeq = 0;
+
+function addKink(){
+  kinks.push({id:++kinkSeq, name:'', role:''});
+  renderKinks();
+  renderPreview();
+}
+function removeKink(id){
+  const el = document.getElementById('kc-'+id);
+  if(el){
+    el.classList.add('removing');
+    setTimeout(()=>{ kinks = kinks.filter(k=>k.id!==id); renderKinks(); renderPreview(); }, 220);
+  }
+}
+function updateKink(id, field, value){
+  const k = kinks.find(k=>k.id===id);
+  if(k){ k[field]=value; renderPreview(); }
+}
+function renderKinks(){
+  const list = document.getElementById('kinkList');
+  list.innerHTML = '';
+  kinks.forEach((k,i)=>{
+    const num = String(i+1).padStart(2,'0');
+    const card = document.createElement('div');
+    card.className = 'kink-card entering';
+    card.id = 'kc-'+k.id;
+    card.innerHTML = `
+      <div class="kink-num">${num}</div>
+      <div class="kink-fields">
+        <input placeholder="Enter kink name" value="${escapeAttr(k.name)}" oninput="updateKink(${k.id},'name',this.value)">
+        <select onchange="updateKink(${k.id},'role',this.value)">
+          <option value="" ${k.role===''?'selected':''} disabled>Preference / Role</option>
+          <option value="Dominant" ${k.role==='Dominant'?'selected':''}>Dominant</option>
+          <option value="Submissive" ${k.role==='Submissive'?'selected':''}>Submissive</option>
+          <option value="Questioning" ${k.role==='Questioning'?'selected':''}>Questioning</option>
+        </select>
+        ${(k.name && !k.role) || (!k.name && k.role) ? '<div class="kink-err">Please enter a kink name or remove this entry.</div>' : ''}
+      </div>
+      <button class="rm-btn" onclick="removeKink(${k.id})">Remove</button>
+    `;
+    list.appendChild(card);
+  });
+}
+function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function getProfile(){
+  return {
+    fetlifeId: document.getElementById('fetlifeId').value.trim(),
+    displayName: document.getElementById('displayName').value.trim(),
+    pronouns: document.getElementById('pronouns').value.trim(),
+    location: document.getElementById('location').value.trim(),
+    age: document.getElementById('age').value.trim(),
+    bio: document.getElementById('bio').value.trim(),
+    website: document.getElementById('website').value.trim(),
+    reportDate: document.getElementById('reportDate').value
+  };
+}
+function completedKinks(){ return kinks.filter(k=>k.name.trim() && k.role); }
+
+function fmtDate(d){
+  if(!d) return '';
+  const dt = new Date(d+'T00:00:00');
+  if(isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+}
+
+function renderPreview(){
+  const p = getProfile();
+  const ck = completedKinks();
+  const el = document.getElementById('preview');
+  let meta = '';
+  const row = (label,val)=> val ? `<div><div class="l">${label}</div><div class="v">${escapeHtml(val)}</div></div>` : '';
+  meta += row('FetLife ID', p.fetlifeId);
+  meta += row('Display Name', p.displayName);
+  meta += row('Pronouns', p.pronouns);
+  meta += row('Location', p.location);
+  meta += row('Age', p.age);
+  meta += row('Website', p.website);
+  meta += row('Date of Report', fmtDate(p.reportDate));
+  let bio = p.bio ? `<div class="pv-bio"><div class="l" style="margin-bottom:6px;">Short Bio</div>${escapeHtml(p.bio)}</div>` : '';
+
+  let kinkHtml = '';
+  if(ck.length){
+    kinkHtml = ck.map((k,i)=>`
+      <div class="pv-kink">
+        <div class="n">${String(i+1).padStart(2,'0')}</div>
+        <div class="name">${escapeHtml(k.name)}</div>
+        <div class="role">${k.role}</div>
+      </div>`).join('');
+  } else {
+    kinkHtml = '<p class="pv-empty">No kink entries yet — add one to see it here.</p>';
+  }
+
+  el.innerHTML = `
+    <div class="pv-eyebrow">Personal Preference Profile</div>
+    <h3 class="pv-title serif">Kink<br>Report Card</h3>
+    <hr class="pv-rule">
+    <div class="pv-meta">${meta}${bio}</div>
+    ${p.fetlifeId || p.displayName ? '' : '<p class="pv-empty">Enter your FetLife ID to get started.</p>'}
+    <div class="pv-kh">Kink Profile</div>
+    ${kinkHtml}
+  `;
+}
+
+// ---- PDF generation ----
+async function generatePDF(){
+  const p = getProfile();
+  const ck = completedKinks();
+  document.getElementById('err-fetlife').classList.remove('show');
+
+  if(!p.fetlifeId){
+    document.getElementById('err-fetlife').classList.add('show');
+    document.getElementById('fetlifeId').focus();
+    return;
+  }
+
+  const status = document.getElementById('genStatus');
+  const btn = document.getElementById('genBtn');
+  status.textContent = 'Preparing your document…';
+  btn.disabled = true;
+
+  setTimeout(async ()=>{
+    try{
+      if(!window.jspdf){ throw new Error('PDF engine failed to load. Check your connection and try again.'); }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({unit:'mm', format:'a4', orientation:'portrait'});
+      const M = 25; // margin
+      const PW = 210, PH = 297;
+      const INK = [27,24,20], GRAY = [115,107,98], ACCENT = [94,34,51], LINE = [227,220,209];
+
+      function footer(pageLabel){
+        doc.setDrawColor(...LINE); doc.setLineWidth(0.2);
+        doc.line(M, PH-18, PW-M, PH-18);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+        doc.text('KINK REPORT CARD', M, PH-12);
+        doc.text(pageLabel, PW-M, PH-12, {align:'right'});
+      }
+
+      // ---- Cover page ----
+      doc.setFont('times','normal'); doc.setTextColor(...INK);
+      doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...GRAY);
+      doc.text('PERSONAL PREFERENCE PROFILE', M, M+2);
+
+      doc.setFont('times','normal'); doc.setTextColor(...INK); doc.setFontSize(46);
+      doc.text('KINK', M, M+28);
+      doc.text('REPORT CARD', M, M+42);
+
+      doc.setDrawColor(...LINE); doc.setLineWidth(0.3);
+      doc.line(M, M+54, PW-M, M+54);
+
+      let y = M+70;
+      const metaRows = [];
+      if(p.fetlifeId) metaRows.push(['FetLife ID', p.fetlifeId]);
+      if(p.displayName) metaRows.push(['Display Name', p.displayName]);
+      if(p.pronouns) metaRows.push(['Pronouns', p.pronouns]);
+      if(p.location) metaRows.push(['Location', p.location]);
+      if(p.age) metaRows.push(['Age', p.age]);
+      if(p.website) metaRows.push(['Website / Social', p.website]);
+      if(p.reportDate) metaRows.push(['Date of Report', fmtDate(p.reportDate)]);
+
+      const colW = (PW-2*M)/2;
+      metaRows.forEach((r,i)=>{
+        const col = i%2, row = Math.floor(i/2);
+        const x = M + col*colW;
+        const ry = y + row*20;
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+        doc.text(r[0].toUpperCase(), x, ry);
+        doc.setFont('times','normal'); doc.setFontSize(13); doc.setTextColor(...INK);
+        doc.text(String(r[1]), x, ry+7, {maxWidth: colW-10});
+      });
+
+      if(p.bio){
+        const bioY = y + Math.ceil(metaRows.length/2)*20 + 14;
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+        doc.text('SHORT BIO', M, bioY);
+        doc.setFont('times','normal'); doc.setFontSize(11.5); doc.setTextColor(...INK);
+        const lines = doc.splitTextToSize(p.bio, PW-2*M);
+        doc.text(lines, M, bioY+8);
+      }
+
+      const totalKinkPages = ck.length ? Math.ceil(ck.length / 8) : 0;
+      const totalPages = 1 + totalKinkPages;
+      footer('01 / ' + String(totalPages).padStart(2,'0'));
+
+      // ---- Kink pages ----
+      const perPage = 8;
+      let pageNum = 1;
+      for(let i=0;i<ck.length;i+=perPage){
+        doc.addPage();
+        pageNum++;
+        const chunk = ck.slice(i, i+perPage);
+
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+        doc.text('KINK PROFILE', M, M+2);
+        doc.setDrawColor(...LINE); doc.setLineWidth(0.3);
+        doc.line(M, M+8, PW-M, M+8);
+
+        let ry = M+26;
+        chunk.forEach((k, idx)=>{
+          const num = String(i+idx+1).padStart(2,'0');
+          doc.setFont('times','normal'); doc.setFontSize(13); doc.setTextColor(...GRAY);
+          doc.text(num, M, ry);
+          doc.setFont('times','normal'); doc.setFontSize(17); doc.setTextColor(...INK);
+          doc.text(k.name, M+16, ry);
+          doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...ACCENT);
+          doc.text(k.role.toUpperCase(), PW-M, ry, {align:'right'});
+          ry += 12;
+          if(idx < chunk.length-1){
+            doc.setDrawColor(...LINE); doc.setLineWidth(0.15);
+            doc.line(M, ry-6, PW-M, ry-6);
+          }
+          ry += 18;
+        });
+
+        footer(String(pageNum).padStart(2,'0') + ' / ' + String(totalPages).padStart(2,'0'));
+      }
+
+      const filename = 'kink-report-card' + (p.displayName ? '-'+p.displayName.toLowerCase().replace(/[^a-z0-9]+/g,'-') : '') + '.pdf';
+      const blob = doc.output('blob');
+
+      let saved = false;
+      try{
+        const downloads = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('downloads') : null;
+        if(downloads){
+          await downloads.save({filename, data: blob});
+          saved = true;
+        }
+      }catch(dlErr){
+        if(dlErr && dlErr.code === 'declined'){
+          status.textContent = 'Download cancelled.';
+          btn.disabled = false;
+          return;
+        }
+        // fall through to direct-download fallback below
+      }
+
+      if(!saved){
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+      }
+
+      status.textContent = 'Downloaded.';
+      btn.textContent = 'Download PDF';
+    }catch(e){
+      status.textContent = 'Something went wrong generating the PDF. Please try again.';
+      console.error(e);
+    }finally{
+      btn.disabled = false;
+    }
+  }, 250);
+}
+
+renderKinks();
+renderPreview();
+</script>
+</body>
+</html>
